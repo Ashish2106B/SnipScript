@@ -1,0 +1,18 @@
+{
+  "name": "snipscript",
+  "version": "1.0.0",
+  "description": "",
+  "main": "src/main.js",
+  "scripts": {
+  "start": "electron ."
+},
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^41.7.1"
+  },
+  "dependencies": {
+    "tesseract.js": "^7.0.0"
+  }
+}
