@@ -1,8 +1,9 @@
+const { app, BrowserWindow, globalShortcut } = require('electron');
 
-const { app, BrowserWindow } = require('electron');
+let mainWindow;
 
 function createWindow() {
-    const win = new BrowserWindow({
+    mainWindow = new BrowserWindow({
         width: 900,
         height: 600,
         title: 'Snipscript',
@@ -12,41 +13,60 @@ function createWindow() {
         }
     });
 
-    win.loadURL(
+    mainWindow.loadURL(
         'data:text/html;charset=utf-8,' +
         encodeURIComponent(`
             <!DOCTYPE html>
             <html>
             <head>
+                <meta charset="UTF-8">
                 <title>Snipscript</title>
                 <style>
                     body {
-                        margin: 0;
-                        height: 100vh;
+                        font-family: -apple-system, sans-serif;
+                        background: #f7f8fa;
+                        color: #202124;
                         display: flex;
                         flex-direction: column;
                         justify-content: center;
                         align-items: center;
-                        font-family: -apple-system, sans-serif;
-                        background: #f7f8fa;
-                        color: #202124;
+                        height: 100vh;
+                        margin: 0;
                     }
 
                     h1 {
                         font-size: 40px;
-                        margin-bottom: 8px;
                     }
 
                     p {
                         color: #666;
-                        font-size: 16px;
+                    }
+
+                    #status {
+                        margin-top: 20px;
+                        padding: 12px 20px;
+                        background: #e8f0fe;
+                        border-radius: 8px;
+                        color: #174ea6;
                     }
                 </style>
             </head>
             <body>
                 <h1>Snipscript</h1>
                 <p>Extract text from anywhere on your screen.</p>
-                <p>Your local OCR workspace starts here.</p>
+                <p>Shortcut: Cmd + Shift + S</p>
+                <div id="status">Status: Ready</div>
+
+                <script>
+                    window.addEventListener('DOMContentLoaded', () => {
+                        window.addEventListener('message', (event) => {
+                            if (event.data === 'SNIPSCRIPT_ACTIVATED') {
+                                document.getElementById('status').textContent =
+                                    'Status: Shortcut activated!';
+                            }
+                        });
+                    });
+                </script>
             </body>
             </html>
         `)
@@ -56,11 +76,32 @@ function createWindow() {
 app.whenReady().then(() => {
     createWindow();
 
-    app.on('activate', () => {
-        if (BrowserWindow.getAllWindows().length === 0) {
-            createWindow();
+    const registered = globalShortcut.register(
+        'CommandOrControl+Shift+S',
+        () => {
+            console.log('Snipscript shortcut activated!');
+
+            if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.show();
+    mainWindow.focus();
+
+    mainWindow.webContents.executeJavaScript(`
+        document.getElementById('status').textContent =
+            'Status: Shortcut activated!';
+    `);
+}
         }
-    });
+    );
+
+    if (!registered) {
+        console.error('Failed to register the Snipscript shortcut.');
+    } else {
+        console.log('Global shortcut registered successfully.');
+    }
+});
+
+app.on('will-quit', () => {
+    globalShortcut.unregisterAll();
 });
 
 app.on('window-all-closed', () => {
