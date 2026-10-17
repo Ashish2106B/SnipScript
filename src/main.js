@@ -2,8 +2,8 @@ const {
     app,
     BrowserWindow,
     globalShortcut,
-    desktopCapturer,
-    screen
+    screen,
+    ipcMain
 } = require('electron');
 
 const path = require('path');
@@ -118,6 +118,10 @@ function activateSelection() {
 
 app.whenReady().then(() => {
     createWindow();
+
+    ipcMain.on('capture-selection', (event, region) => {
+    console.log('Received selection coordinates:', region);
+});
 
     const registered = globalShortcut.register(
         'CommandOrControl+Shift+S',
