@@ -55,5 +55,5 @@ document.addEventListener('mouseup', (event) => {
         return;
     }
 
-    console.log('Selected region:', region);
+    window.snipscript.captureSelection(region);
 });
