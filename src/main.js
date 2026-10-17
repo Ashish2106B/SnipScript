@@ -2,6 +2,7 @@ const {
     app,
     BrowserWindow,
     globalShortcut,
+    desktopCapturer,
     screen
 } = require('electron');
 
@@ -85,9 +86,10 @@ function createSelectionWindow() {
         skipTaskbar: true,
         hasShadow: false,
         webPreferences: {
-            contextIsolation: true,
-            nodeIntegration: false
-        }
+        preload: path.join(__dirname, 'preload.js'),
+        contextIsolation: true,
+        nodeIntegration: false
+    }
     });
 
     selectionWindow.setAlwaysOnTop(true, 'screen-saver');
