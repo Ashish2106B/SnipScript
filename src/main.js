@@ -1,6 +1,14 @@
-const { app, BrowserWindow, globalShortcut } = require('electron');
+const {
+    app,
+    BrowserWindow,
+    globalShortcut,
+    screen
+} = require('electron');
+
+const path = require('path');
 
 let mainWindow;
+let selectionWindow;
 
 function createWindow() {
     mainWindow = new BrowserWindow({
@@ -56,21 +64,54 @@ function createWindow() {
                 <p>Extract text from anywhere on your screen.</p>
                 <p>Shortcut: Cmd + Shift + S</p>
                 <div id="status">Status: Ready</div>
-
-                <script>
-                    window.addEventListener('DOMContentLoaded', () => {
-                        window.addEventListener('message', (event) => {
-                            if (event.data === 'SNIPSCRIPT_ACTIVATED') {
-                                document.getElementById('status').textContent =
-                                    'Status: Shortcut activated!';
-                            }
-                        });
-                    });
-                </script>
             </body>
             </html>
         `)
     );
+}
+
+function createSelectionWindow() {
+    const { bounds } = screen.getPrimaryDisplay();
+
+    selectionWindow = new BrowserWindow({
+        x: bounds.x,
+        y: bounds.y,
+        width: bounds.width,
+        height: bounds.height,
+        frame: false,
+        transparent: true,
+        backgroundColor: '#00000000',
+        alwaysOnTop: true,
+        skipTaskbar: true,
+        hasShadow: false,
+        webPreferences: {
+            contextIsolation: true,
+            nodeIntegration: false
+        }
+    });
+
+    selectionWindow.setAlwaysOnTop(true, 'screen-saver');
+    selectionWindow.setVisibleOnAllWorkspaces(true);
+
+    selectionWindow.loadFile(
+        path.join(__dirname, 'selection', 'selection.html')
+    );
+
+    selectionWindow.on('closed', () => {
+        selectionWindow = null;
+    });
+}
+
+function activateSelection() {
+    if (selectionWindow && !selectionWindow.isDestroyed()) {
+        selectionWindow.close();
+    }
+
+    if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.hide();
+    }
+
+    createSelectionWindow();
 }
 
 app.whenReady().then(() => {
@@ -79,24 +120,15 @@ app.whenReady().then(() => {
     const registered = globalShortcut.register(
         'CommandOrControl+Shift+S',
         () => {
-            console.log('Snipscript shortcut activated!');
-
-            if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.show();
-    mainWindow.focus();
-
-    mainWindow.webContents.executeJavaScript(`
-        document.getElementById('status').textContent =
-            'Status: Shortcut activated!';
-    `);
-}
+            console.log('Snipscript selection activated!');
+            activateSelection();
         }
     );
 
-    if (!registered) {
-        console.error('Failed to register the Snipscript shortcut.');
-    } else {
+    if (registered) {
         console.log('Global shortcut registered successfully.');
+    } else {
+        console.error('Failed to register the Snipscript shortcut.');
     }
 });
 
