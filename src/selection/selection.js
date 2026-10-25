@@ -55,5 +55,8 @@ document.addEventListener('mouseup', (event) => {
         return;
     }
 
+    console.log('Final selected region:', region);
+    console.log('Selection rectangle bounds:', selection.getBoundingClientRect());
+
     window.snipscript.captureSelection(region);
 });

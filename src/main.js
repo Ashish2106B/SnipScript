@@ -147,13 +147,31 @@ app.whenReady().then(() => {
     }
 });
 
-    const registered = globalShortcut.register(
-        'CommandOrControl+Shift+S',
-        () => {
-            console.log('Snipscript selection activated!');
-            activateSelection();
+const { exec } = require('child_process');
+
+const registered = globalShortcut.register(
+    'CommandOrControl+Shift+S',
+    () => {
+        console.log('Snipscript selection activated!');
+
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.hide();
         }
-    );
+
+        exec('/usr/sbin/screencapture -i "$HOME/Desktop/snipscript-capture.png"', (error) => {
+            if (error) {
+                console.error('Screenshot cancelled or failed:', error.message);
+            } else {
+                console.log('Native screenshot captured successfully.');
+            }
+
+            if (mainWindow && !mainWindow.isDestroyed()) {
+                mainWindow.show();
+            }
+        });
+    }
+);
+
 
     if (registered) {
         console.log('Global shortcut registered successfully.');

@@ -9,6 +9,10 @@ async function captureScreenRegion(region) {
     const { width, height } = display.bounds;
     const scaleFactor = display.scaleFactor;
 
+    console.log('Display bounds:', display.bounds);
+    console.log('Display work area:', display.workArea);
+    console.log('Display scale factor:', scaleFactor);
+
     const sources = await desktopCapturer.getSources({
         types: ['screen'],
         thumbnailSize: {
@@ -30,6 +34,13 @@ async function captureScreenRegion(region) {
 
     const scaleX = imageSize.width / width;
     const scaleY = imageSize.height / height;
+
+    console.log('Selected Y:', region.y);
+    console.log('Selected bottom Y:', region.y + region.height);
+    console.log('Scaled Y:', Math.round(region.y * scaleY));
+    console.log('Scaled bottom Y:', Math.round((region.y + region.height) * scaleY));
+    console.log('Work area Y offset:', display.workArea.y);
+    console.log('Scaled work area Y offset:', display.workArea.y * scaleFactor);
 
     const cropRegion = {
         x: Math.round(region.x * scaleX),
