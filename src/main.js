@@ -5,6 +5,7 @@ const {
     screen,
     ipcMain
 } = require('electron');
+const { extractText } = require('./ocr/textExtractor');
 
 const { captureScreenRegion } = require('./capture/screenCapture');
 
@@ -158,17 +159,34 @@ const registered = globalShortcut.register(
             mainWindow.hide();
         }
 
-        exec('/usr/sbin/screencapture -i "$HOME/Desktop/snipscript-capture.png"', (error) => {
-            if (error) {
-                console.error('Screenshot cancelled or failed:', error.message);
-            } else {
-                console.log('Native screenshot captured successfully.');
-            }
+        exec('/usr/sbin/screencapture -i "$HOME/Desktop/snipscript-capture.png"', async (error) => {
+    try {
+        if (error) {
+            console.log('Screenshot cancelled or failed.');
+            return;
+        }
 
-            if (mainWindow && !mainWindow.isDestroyed()) {
-                mainWindow.show();
-            }
-        });
+        console.log('Native screenshot captured successfully.');
+
+        const imagePath = path.join(
+            require('os').homedir(),
+            'Desktop',
+            'snipscript-capture.png'
+        );
+
+        console.log('Extracting text...');
+
+        const text = await extractText(imagePath);
+
+        console.log('Extracted text:\n', text);
+    } catch (err) {
+        console.error('OCR failed:', err);
+    } finally {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.show();
+        }
+    }
+});
     }
 );
 
