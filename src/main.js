@@ -6,6 +6,8 @@ const {
     ipcMain
 } = require('electron');
 
+const { captureScreenRegion } = require('./capture/screenCapture');
+
 const path = require('path');
 
 let mainWindow;
@@ -119,8 +121,16 @@ function activateSelection() {
 app.whenReady().then(() => {
     createWindow();
 
-    ipcMain.on('capture-selection', (event, region) => {
-    console.log('Received selection coordinates:', region);
+    ipcMain.on('capture-selection', async (event, region) => {
+    try {
+        console.log('Received selection coordinates:', region);
+
+        const imagePath = await captureScreenRegion(region);
+
+        console.log('Screenshot saved successfully:', imagePath);
+    } catch (error) {
+        console.error('Screen capture failed:', error);
+    }
 });
 
     const registered = globalShortcut.register(
