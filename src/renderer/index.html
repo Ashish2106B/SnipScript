@@ -1,0 +1,43 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SnipScript</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <main class="app">
+        <header class="header">
+            <div>
+                <h1>SnipScript</h1>
+                <p>Turn screenshots into editable text.</p>
+            </div>
+            <span class="status" id="status">Ready</span>
+        </header>
+
+        <section class="editor">
+            <label for="ocrText">Extracted text</label>
+            <textarea
+                id="ocrText"
+                placeholder="Your extracted text will appear here..."
+                spellcheck="false"
+            ></textarea>
+        </section>
+
+        <footer class="actions">
+            <span id="message">Select a screen region to get started.</span>
+            <div class="buttons">
+                <button id="clearButton" class="secondary">Clear</button>
+                <button id="copyButton" class="primary">Copy text</button>
+            </div>
+        </footer>
+
+        <p class="shortcut">Capture a region: <kbd>⌘</kbd> + <kbd>Shift</kbd> + <kbd>S</kbd></p>
+    </main>
+
+    <script src="renderer.js"></script>
+</body>
+</html>
+```

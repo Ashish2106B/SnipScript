@@ -14,16 +14,24 @@ const path = require('path');
 let mainWindow;
 let selectionWindow;
 
+
 function createWindow() {
     mainWindow = new BrowserWindow({
         width: 900,
-        height: 600,
-        title: 'Snipscript',
+        height: 650,
+        title: 'SnipScript',
         webPreferences: {
+            preload: path.join(__dirname, 'preload.js'),
             contextIsolation: true,
             nodeIntegration: false
         }
     });
+
+    mainWindow.loadFile(
+        path.join(__dirname, 'renderer', 'index.html')
+    );
+}
+
 
     mainWindow.loadURL(
         'data:text/html;charset=utf-8,' +
