@@ -1,18 +1,40 @@
 {
   "name": "snipscript",
   "version": "1.0.0",
-  "description": "",
+  "description": "A desktop OCR tool that converts screen selections into editable text.",
+  "author": "Ashish",
+  "license": "ISC",
   "main": "src/main.js",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "build": "electron-builder --mac dmg"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "devDependencies": {
-    "electron": "^41.7.1"
+    "electron": "^41.7.1",
+    "electron-builder": "^26.0.12"
   },
   "dependencies": {
     "tesseract.js": "^7.0.0"
+  },
+  "build": {
+    "appId": "com.snipscript.desktop",
+    "productName": "SnipScript",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "package.json",
+      "node_modules/**/*"
+    ],
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "category": "public.app-category.productivity"
+    },
+    "dmg": {
+      "title": "SnipScript Installer"
+    }
   }
 }
