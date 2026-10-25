@@ -121,15 +121,29 @@ function activateSelection() {
 app.whenReady().then(() => {
     createWindow();
 
-    ipcMain.on('capture-selection', async (event, region) => {
+   ipcMain.on('capture-selection', async (event, region) => {
     try {
         console.log('Received selection coordinates:', region);
+
+        if (selectionWindow && !selectionWindow.isDestroyed()) {
+            selectionWindow.hide();
+        }
+
+        await new Promise(resolve => setTimeout(resolve, 200));
 
         const imagePath = await captureScreenRegion(region);
 
         console.log('Screenshot saved successfully:', imagePath);
     } catch (error) {
         console.error('Screen capture failed:', error);
+    } finally {
+        if (selectionWindow && !selectionWindow.isDestroyed()) {
+            selectionWindow.close();
+        }
+
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.show();
+        }
     }
 });
 
