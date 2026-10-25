@@ -25,3 +25,14 @@ clearButton.addEventListener('click', () => {
     ocrText.value = '';
     message.textContent = 'Text cleared.';
 });
+
+window.snipscript.onTextExtracted((text) => {
+    ocrText.value = text;
+    message.textContent = text
+        ? 'Text extracted successfully.'
+        : 'No text detected.';
+});
+
+window.snipscript.onOcrStatus((status) => {
+    message.textContent = status;
+});

@@ -1,19 +1,17 @@
+
 const {
     app,
     BrowserWindow,
-    globalShortcut,
-    screen,
-    ipcMain
+    globalShortcut
 } = require('electron');
+
+const { exec } = require('child_process');
 const { extractText } = require('./ocr/textExtractor');
-
-const { captureScreenRegion } = require('./capture/screenCapture');
-
 const path = require('path');
+const os = require('os');
 
 let mainWindow;
-let selectionWindow;
-
+let isCapturing = false;
 
 function createWindow() {
     mainWindow = new BrowserWindow({
@@ -30,179 +28,102 @@ function createWindow() {
     mainWindow.loadFile(
         path.join(__dirname, 'renderer', 'index.html')
     );
-}
 
-
-    mainWindow.loadURL(
-        'data:text/html;charset=utf-8,' +
-        encodeURIComponent(`
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <meta charset="UTF-8">
-                <title>Snipscript</title>
-                <style>
-                    body {
-                        font-family: -apple-system, sans-serif;
-                        background: #f7f8fa;
-                        color: #202124;
-                        display: flex;
-                        flex-direction: column;
-                        justify-content: center;
-                        align-items: center;
-                        height: 100vh;
-                        margin: 0;
-                    }
-
-                    h1 {
-                        font-size: 40px;
-                    }
-
-                    p {
-                        color: #666;
-                    }
-
-                    #status {
-                        margin-top: 20px;
-                        padding: 12px 20px;
-                        background: #e8f0fe;
-                        border-radius: 8px;
-                        color: #174ea6;
-                    }
-                </style>
-            </head>
-            <body>
-                <h1>Snipscript</h1>
-                <p>Extract text from anywhere on your screen.</p>
-                <p>Shortcut: Cmd + Shift + S</p>
-                <div id="status">Status: Ready</div>
-            </body>
-            </html>
-        `)
-    );
-}
-
-function createSelectionWindow() {
-    const { bounds } = screen.getPrimaryDisplay();
-
-    selectionWindow = new BrowserWindow({
-        x: bounds.x,
-        y: bounds.y,
-        width: bounds.width,
-        height: bounds.height,
-        frame: false,
-        transparent: true,
-        backgroundColor: '#00000000',
-        alwaysOnTop: true,
-        skipTaskbar: true,
-        hasShadow: false,
-        webPreferences: {
-        preload: path.join(__dirname, 'preload.js'),
-        contextIsolation: true,
-        nodeIntegration: false
-    }
-    });
-
-    selectionWindow.setAlwaysOnTop(true, 'screen-saver');
-    selectionWindow.setVisibleOnAllWorkspaces(true);
-
-    selectionWindow.loadFile(
-        path.join(__dirname, 'selection', 'selection.html')
-    );
-
-    selectionWindow.on('closed', () => {
-        selectionWindow = null;
+    mainWindow.on('closed', () => {
+        mainWindow = null;
     });
 }
 
 function activateSelection() {
-    if (selectionWindow && !selectionWindow.isDestroyed()) {
-        selectionWindow.close();
+    if (isCapturing) {
+        console.log('A screenshot is already in progress.');
+        return;
     }
+
+    isCapturing = true;
+
+    const screenshotPath = path.join(
+        os.tmpdir(),
+        `snipscript-capture-${Date.now()}.png`
+    );
 
     if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.hide();
     }
 
-    createSelectionWindow();
+    // Allow the SnipScript window to disappear before taking the screenshot.
+    setTimeout(() => {
+        exec(
+            `/usr/sbin/screencapture -i "${screenshotPath}"`,
+            async (error) => {
+                try {
+                    if (error) {
+                        console.log('Screenshot cancelled or failed.');
+
+                        return;
+                    }
+
+                    console.log('Native screenshot captured successfully.');
+
+                    if (!mainWindow || mainWindow.isDestroyed()) {
+                        return;
+                    }
+
+                    mainWindow.show();
+                    mainWindow.webContents.send(
+                        'ocr-status',
+                        'Extracting text...'
+                    );
+
+                    console.log('Extracting text...');
+
+                    const text = await extractText(screenshotPath);
+
+                    if (!mainWindow || mainWindow.isDestroyed()) {
+                        return;
+                    }
+
+                    mainWindow.webContents.send('ocr-result', text);
+
+                    mainWindow.webContents.send(
+                        'ocr-status',
+                        text
+                            ? 'Text extracted successfully.'
+                            : 'No text detected.'
+                    );
+
+                    console.log('Extracted text:\n', text);
+                } catch (err) {
+                    console.error('Screenshot or OCR failed:', err);
+
+                    if (mainWindow && !mainWindow.isDestroyed()) {
+                        mainWindow.show();
+
+                        mainWindow.webContents.send(
+                            'ocr-status',
+                            'Text extraction failed. Check the terminal.'
+                        );
+                    }
+                } finally {
+                    isCapturing = false;
+                }
+            }
+        );
+    }, 300);
 }
 
 app.whenReady().then(() => {
     createWindow();
 
-   ipcMain.on('capture-selection', async (event, region) => {
-    try {
-        console.log('Received selection coordinates:', region);
-
-        if (selectionWindow && !selectionWindow.isDestroyed()) {
-            selectionWindow.hide();
-        }
-
-        await new Promise(resolve => setTimeout(resolve, 200));
-
-        const imagePath = await captureScreenRegion(region);
-
-        console.log('Screenshot saved successfully:', imagePath);
-    } catch (error) {
-        console.error('Screen capture failed:', error);
-    } finally {
-        if (selectionWindow && !selectionWindow.isDestroyed()) {
-            selectionWindow.close();
-        }
-
-        if (mainWindow && !mainWindow.isDestroyed()) {
-            mainWindow.show();
-        }
-    }
-});
-
-const { exec } = require('child_process');
-
-const registered = globalShortcut.register(
-    'CommandOrControl+Shift+S',
-    () => {
-        console.log('Snipscript selection activated!');
-
-        if (mainWindow && !mainWindow.isDestroyed()) {
-            mainWindow.hide();
-        }
-
-        exec('/usr/sbin/screencapture -i "$HOME/Desktop/snipscript-capture.png"', async (error) => {
-    try {
-        if (error) {
-            console.log('Screenshot cancelled or failed.');
-            return;
-        }
-
-        console.log('Native screenshot captured successfully.');
-
-        const imagePath = path.join(
-            require('os').homedir(),
-            'Desktop',
-            'snipscript-capture.png'
-        );
-
-        console.log('Extracting text...');
-
-        const text = await extractText(imagePath);
-
-        console.log('Extracted text:\n', text);
-    } catch (err) {
-        console.error('OCR failed:', err);
-    } finally {
-        if (mainWindow && !mainWindow.isDestroyed()) {
-            mainWindow.show();
-        }
-    }
-});
-    }
-);
-
+    const registered = globalShortcut.register(
+        'CommandOrControl+Shift+S',
+        activateSelection
+    );
 
     if (registered) {
         console.log('Global shortcut registered successfully.');
     } else {
-        console.error('Failed to register the Snipscript shortcut.');
+        console.error('Failed to register the SnipScript shortcut.');
     }
 });
 
